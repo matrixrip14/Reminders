@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Reminders</title>
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="/Reminders/manifest.json">
 <meta name="theme-color" content="#c9735a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -207,11 +207,10 @@
 <script>
   // ── Register Service Worker ──
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').then(reg => {
-      console.log('SW registered:', reg.scope);
-    }).catch(err => console.log('SW error:', err));
+    navigator.serviceWorker.register('/Reminders/sw.js', { scope: '/Reminders/' })
+      .then(reg => console.log('SW registered ✅', reg.scope))
+      .catch(err => console.log('SW error:', err));
 
-    // Listen for messages from SW (notification click)
     navigator.serviceWorker.addEventListener('message', e => {
       if (e.data && e.data.type === 'REMINDER_DUE') {
         const r = reminders.find(x => x.id === e.data.id);
@@ -237,40 +236,29 @@
   function playPartyPopper() {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-
       function pop(time, freq, dur) {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         const dist = ctx.createWaveShaper();
-
-        // Distortion curve for a "pop" texture
         const curve = new Float32Array(256);
         for (let i = 0; i < 256; i++) {
           const x = (i * 2) / 256 - 1;
           curve[i] = (Math.PI + 300) * x / (Math.PI + 300 * Math.abs(x));
         }
         dist.curve = curve;
-
-        osc.connect(dist);
-        dist.connect(gain);
-        gain.connect(ctx.destination);
-
+        osc.connect(dist); dist.connect(gain); gain.connect(ctx.destination);
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(freq, ctx.currentTime + time);
         osc.frequency.exponentialRampToValueAtTime(freq * 0.3, ctx.currentTime + time + dur);
-
         gain.gain.setValueAtTime(0.6, ctx.currentTime + time);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + time + dur);
-
         osc.start(ctx.currentTime + time);
         osc.stop(ctx.currentTime + time + dur + 0.05);
       }
-
       function sparkle(time, freq) {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
+        osc.connect(gain); gain.connect(ctx.destination);
         osc.type = 'sine';
         osc.frequency.setValueAtTime(freq, ctx.currentTime + time);
         osc.frequency.exponentialRampToValueAtTime(freq * 2.5, ctx.currentTime + time + 0.15);
@@ -279,20 +267,10 @@
         osc.start(ctx.currentTime + time);
         osc.stop(ctx.currentTime + time + 0.25);
       }
-
-      // 🎉 Two pops + sparkle trail
-      pop(0.00, 180, 0.18);
-      pop(0.22, 220, 0.18);
-      sparkle(0.10, 800);
-      sparkle(0.18, 1000);
-      sparkle(0.26, 1200);
-      sparkle(0.34, 1500);
-      sparkle(0.42, 1100);
-      sparkle(0.50, 900);
-
-    } catch(e) {
-      console.log('Audio not available:', e);
-    }
+      pop(0.00, 180, 0.18); pop(0.22, 220, 0.18);
+      sparkle(0.10, 800); sparkle(0.18, 1000); sparkle(0.26, 1200);
+      sparkle(0.34, 1500); sparkle(0.42, 1100); sparkle(0.50, 900);
+    } catch(e) {}
   }
 
   // ── Toast ──
@@ -305,17 +283,14 @@
     toastTimer = setTimeout(() => t.classList.remove('show'), dur);
   }
 
-  // ── In-app alert banner ──
+  // ── Alert banner ──
   function showAlert(r) {
     if (alertReminderIds[r.id]) return;
     alertReminderIds[r.id] = true;
-
     playPartyPopper();
-
     document.getElementById('alertTitle').textContent = `🎉 Time to wish ${r.name}!`;
     document.getElementById('alertSub').textContent =
       `${r.occasion || 'Special occasion'} · ${r.platform === 'whatsapp' ? r.phone : '@' + r.ig}`;
-
     const actions = document.getElementById('alertActions');
     if (r.platform === 'whatsapp') {
       actions.innerHTML = `
@@ -333,18 +308,13 @@
     document.getElementById('alertBanner').classList.remove('show');
   }
 
-  // ── Browser / SW notification ──
+  // ── Schedule ──
   function scheduleViaSW(r) {
     if (!('serviceWorker' in navigator)) return;
     navigator.serviceWorker.ready.then(reg => {
       const delay = new Date(r.time) - Date.now();
-      if (delay > 0) {
-        // Post to SW with the reminder data + delay
-        reg.active && reg.active.postMessage({
-          type: 'SCHEDULE',
-          reminder: r,
-          delay: delay
-        });
+      if (delay > 0 && reg.active) {
+        reg.active.postMessage({ type: 'SCHEDULE', reminder: r, delay });
       }
     });
   }
@@ -355,13 +325,11 @@
       setTimeout(() => {
         showAlert(r);
         renderList();
-        // Also fire browser notification
         if (notifSupported && Notification.permission === 'granted') {
           try {
             new Notification(`🎉 Time to wish ${r.name}!`, {
               body: `${r.occasion || 'Special occasion'} — open Reminders to send`,
-              requireInteraction: true,
-              icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎉</text></svg>'
+              requireInteraction: true
             });
           } catch(e) {}
         }
@@ -379,9 +347,9 @@
       if (perm === 'granted') {
         document.getElementById('notifBar').style.display = 'none';
         reminders.forEach(r => { if (r.status !== 'sent') scheduleViaSW(r); });
-        showToast('🔔 Notifications enabled! You\'ll be alerted on time.');
+        showToast('🔔 Notifications enabled!');
       } else if (perm === 'denied') {
-        showToast('🔕 Blocked — in-app alerts will still work when tab is open.', 5000);
+        showToast('🔕 Blocked in browser settings — in-app alerts still work!', 5000);
         document.getElementById('notifBar').style.display = 'none';
       }
     }).catch(() => {
@@ -408,4 +376,14 @@
     const msg = document.getElementById('messageText').value.trim();
     const preview = document.getElementById('msgPreview');
     if (msg) {
-      preview.textContent = '"
+      preview.textContent = '"' + msg.slice(0,120) + (msg.length>120?'…':'') + '"';
+      preview.className = 'preview-box visible';
+    } else { preview.className = 'preview-box'; }
+  }
+
+  function addReminder() {
+    const name     = document.getElementById('personName').value.trim();
+    const occasion = document.getElementById('occasion').value.trim();
+    const time     = document.getElementById('reminderTime').value;
+    const message  = document.getElementById('messageText').value.trim();
+    const phone    = document.getElementById('phoneNumber').value.tri
