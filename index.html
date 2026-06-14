@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reminders</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#c9735a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Reminders">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@400;500&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --ink: #1a1218; --paper: #faf7f4; --blush: #e8c4b8;
+    --rose: #c9735a; --muted: #8a7f7a; --card: #ffffff; --border: #e8e0dc;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; display: flex; flex-direction: column; }
+
+  #toast {
+    position: fixed; bottom: 1.5rem; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1a1218; color: #fff; padding: 0.7rem 1.25rem;
+    border-radius: 30px; font-size: 0.85rem; font-weight: 500;
+    z-index: 9999; transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0; white-space: nowrap; max-width: 90vw; text-align: center;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  #alertBanner {
+    display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 10000;
+    background: linear-gradient(135deg, #c9735a, #e8845f); color: #fff;
+    padding: 1rem 1.5rem; box-shadow: 0 4px 24px rgba(201,115,90,0.4);
+    animation: slideDown 0.4s ease;
+  }
+  #alertBanner.show { display: block; }
+  @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+  .alert-inner { max-width: 720px; margin: 0 auto; display: flex; align-items: center; gap: 1rem; }
+  .alert-bell { font-size: 1.6rem; flex-shrink: 0; animation: ring 0.6s ease 0.2s 3; }
+  @keyframes ring { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-18deg)} 75%{transform:rotate(18deg)} }
+  .alert-text { flex: 1; }
+  .alert-title { font-family: 'Fraunces', serif; font-size: 1.05rem; font-weight: 600; }
+  .alert-sub { font-size: 0.8rem; opacity: 0.88; margin-top: 0.15rem; }
+  .alert-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+  .alert-btn { padding: 0.42rem 0.9rem; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.78rem; font-weight: 500; cursor: pointer; border: none; transition: opacity 0.15s; }
+  .alert-btn:hover { opacity: 0.85; }
+  .alert-btn-send-wa { background: #25D366; color: #fff; }
+  .alert-btn-send-ig { background: linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045); color: #fff; }
+  .alert-btn-dismiss { background: rgba(255,255,255,0.22); color: #fff; }
+
+  #notifBar { background: var(--blush); padding: 0.65rem 1.25rem; font-size: 0.8rem; color: #6b3a2a; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-shrink: 0; }
+  #notifBar button { padding: 0.32rem 0.85rem; background: var(--rose); color: white; border: none; border-radius: 7px; font-size: 0.78rem; font-weight: 500; cursor: pointer; white-space: nowrap; }
+
+  header { padding: 1.5rem 2rem 1rem; border-bottom: 1px solid var(--border); background: var(--card); flex-shrink: 0; }
+  .logo { font-family: 'Fraunces', serif; font-size: 1.75rem; font-weight: 600; letter-spacing: -0.02em; }
+  .logo span { color: var(--rose); font-style: italic; }
+  .tagline { font-size: 0.75rem; color: var(--muted); margin-top: 0.15rem; letter-spacing: 0.07em; text-transform: uppercase; }
+
+  .container { max-width: 720px; width: 100%; margin: 0 auto; padding: 1.75rem 1.5rem; flex: 1; }
+  .section-label { font-size: 0.68rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.85rem; }
+
+  .form-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.6rem; margin-bottom: 2rem; box-shadow: 0 2px 12px rgba(26,18,24,0.04); }
+  .form-title { font-family: 'Fraunces', serif; font-size: 1.25rem; font-weight: 300; margin-bottom: 1.4rem; }
+  .field-group { margin-bottom: 1.1rem; }
+  label { display: block; font-size: 0.75rem; font-weight: 500; color: var(--muted); margin-bottom: 0.35rem; letter-spacing: 0.04em; }
+  input, textarea { width: 100%; padding: 0.6rem 0.85rem; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.88rem; color: var(--ink); background: var(--paper); transition: border-color 0.2s; outline: none; }
+  input:focus, textarea:focus { border-color: var(--rose); background: #fff; }
+  textarea { resize: vertical; min-height: 85px; line-height: 1.5; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .platform-row { display: flex; gap: 0.6rem; }
+  .platform-btn { flex: 1; padding: 0.55rem 0.4rem; border: 1.5px solid var(--border); border-radius: 10px; background: var(--paper); cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 500; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.18s; }
+  .platform-btn.active-wa { border-color: #25D366; background: #f0fdf4; color: #16a34a; }
+  .platform-btn.active-ig { border-color: #c13584; background: #fdf2f8; color: #9d174d; }
+  .platform-btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .cond-field { display: none; }
+  .cond-field.visible { display: block; }
+  .btn-primary { width: 100%; padding: 0.78rem; background: var(--rose); color: white; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.92rem; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+  .btn-primary:hover { background: #b5614a; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(201,115,90,0.28); }
+  .btn-primary:active { transform: translateY(0); }
+
+  .reminder-item { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.1rem; margin-bottom: 0.7rem; display: flex; align-items: center; gap: 0.9rem; position: relative; transition: box-shadow 0.2s; }
+  .reminder-item:hover { box-shadow: 0 4px 16px rgba(26,18,24,0.07); }
+  .reminder-icon { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; }
+  .icon-wa { background: #f0fdf4; }
+  .icon-ig { background: #fdf2f8; }
+  .reminder-info { flex: 1; min-width: 0; }
+  .reminder-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 0.98rem; }
+  .reminder-occasion { font-size: 0.75rem; color: var(--muted); margin-top: 0.12rem; }
+  .reminder-time { font-size: 0.75rem; font-weight: 500; color: var(--rose); margin-top: 0.18rem; }
+  .reminder-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+  .btn-send { padding: 0.42rem 0.75rem; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn-send-wa { background: #25D366; color: white; }
+  .btn-send-wa:hover { background: #1ebe5b; }
+  .btn-send-ig { background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045); color: white; }
+  .btn-delete { padding: 0.42rem 0.6rem; border-radius: 8px; background: transparent; border: 1.5px solid var(--border); color: var(--muted); font-size: 0.78rem; cursor: pointer; transition: all 0.15s; }
+  .btn-delete:hover { background: #fef2f2; border-color: #fca5a5; color: #dc2626; }
+  .status-badge { position: absolute; top: 0.65rem; right: 0.75rem; font-size: 0.62rem; padding: 0.12rem 0.45rem; border-radius: 20px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }
+  .badge-upcoming { background: #fef9c3; color: #854d0e; }
+  .badge-due { background: #fde8e4; color: #c9735a; animation: pulse 1.5s infinite; }
+  .badge-sent { background: #dcfce7; color: #166534; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+
+  .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--muted); }
+  .empty-icon { font-size: 2.75rem; margin-bottom: 0.6rem; }
+  .empty-state p { font-family: 'Fraunces', serif; font-style: italic; font-size: 1rem; }
+
+  .notice-bar { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 10px; padding: 0.65rem 0.9rem; font-size: 0.78rem; color: #92400e; margin-bottom: 1.4rem; line-height: 1.55; }
+  .notice-bar strong { display: block; margin-bottom: 0.15rem; }
+
+  .preview-box { background: var(--paper); border-radius: 8px; padding: 0.55rem 0.8rem; font-size: 0.8rem; color: var(--muted); margin-top: 0.45rem; font-style: italic; border-left: 3px solid var(--blush); display: none; }
+  .preview-box.visible { display: block; }
+
+  footer { text-align: center; padding: 1.25rem 1rem 1.5rem; font-size: 0.78rem; color: var(--muted); border-top: 1px solid var(--border); background: var(--card); flex-shrink: 0; }
+  footer a { color: var(--rose); text-decoration: none; font-weight: 500; }
+  footer a:hover { text-decoration: underline; }
+
+  @media (max-width: 480px) { .row { grid-template-columns: 1fr; } .reminder-actions { flex-direction: column; } .alert-actions { flex-direction: column; } }
+</style>
+</head>
+<body>
+
+<div id="alertBanner">
+  <div class="alert-inner">
+    <div class="alert-bell">🔔</div>
+    <div class="alert-text">
+      <div class="alert-title" id="alertTitle">Time to send your wish!</div>
+      <div class="alert-sub" id="alertSub"></div>
+    </div>
+    <div class="alert-actions" id="alertActions"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<div id="notifBar">
+  <span>🔔 Enable notifications to get alerted even when this tab is closed</span>
+  <button onclick="requestNotifPermission()">Enable</button>
+</div>
+
+<header>
+  <div class="logo">Re<span>minders</span></div>
+  <div class="tagline">Never miss a birthday or anniversary</div>
+</header>
+
+<div class="container">
+  <div class="notice-bar">
+    <strong>ℹ️ How this works</strong>
+    At your set time, you'll get a notification + party popper sound 🎉
+    <b>WhatsApp:</b> Opens chat with message pre-filled — just tap Send.&nbsp;
+    <b>Instagram:</b> Copies your message &amp; opens their profile — paste and send.
+  </div>
+
+  <div class="form-card">
+    <div class="form-title">Schedule a wish</div>
+    <div class="field-group">
+      <label>Their name</label>
+      <input type="text" id="personName" placeholder="e.g. Aunt Sarah" />
+    </div>
+    <div class="field-group">
+      <label>Occasion</label>
+      <input type="text" id="occasion" placeholder="e.g. Birthday, Anniversary, Eid…" />
+    </div>
+    <div class="row">
+      <div class="field-group">
+        <label>Remind me at</label>
+        <input type="datetime-local" id="reminderTime" />
+      </div>
+      <div class="field-group">
+        <label>Platform</label>
+        <div class="platform-row">
+          <button class="platform-btn active-wa" id="btnWA" onclick="selectPlatform('whatsapp')">📱 WhatsApp</button>
+          <button class="platform-btn" id="btnIG" onclick="selectPlatform('instagram')">📸 Instagram</button>
+        </div>
+      </div>
+    </div>
+    <div class="field-group cond-field visible" id="phoneField">
+      <label>Their WhatsApp number (with country code)</label>
+      <input type="tel" id="phoneNumber" placeholder="e.g. +248 2 123456" />
+    </div>
+    <div class="field-group cond-field" id="igField">
+      <label>Their Instagram username</label>
+      <input type="text" id="igUsername" placeholder="e.g. @sarah.seychelles" />
+    </div>
+    <div class="field-group">
+      <label>Your message</label>
+      <textarea id="messageText" placeholder="Happy Birthday! Wishing you all the joy today and always. 🎉" oninput="updatePreview()"></textarea>
+      <div class="preview-box" id="msgPreview"></div>
+    </div>
+    <button class="btn-primary" onclick="addReminder()">＋ Add reminder</button>
+  </div>
+
+  <div class="section-label">Your reminders</div>
+  <div id="remindersList">
+    <div class="empty-state">
+      <div class="empty-icon">💌</div>
+      <p>No reminders yet — add one above</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Built by 📸 <a href="https://www.instagram.com/matrix_rip14" target="_blank" rel="noopener">@matrix_rip14</a>
+  &nbsp;·&nbsp; Reminders &copy; 2026
+</footer>
+
+<script>
+  // ── Register Service Worker ──
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      console.log('SW registered:', reg.scope);
+    }).catch(err => console.log('SW error:', err));
+
+    // Listen for messages from SW (notification click)
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data && e.data.type === 'REMINDER_DUE') {
+        const r = reminders.find(x => x.id === e.data.id);
+        if (r) showAlert(r);
+      }
+    });
+  }
+
+  // ── Safe storage ──
+  const store = (() => {
+    const mem = {};
+    try { localStorage.setItem('__t__','1'); localStorage.removeItem('__t__'); }
+    catch(e) { return { get: k => mem[k]||null, set: (k,v) => { mem[k]=v; } }; }
+    return { get: k => localStorage.getItem(k), set: (k,v) => localStorage.setItem(k,v) };
+  })();
+
+  let reminders = JSON.parse(store.get('reminders_data') || '[]');
+  let selectedPlatform = 'whatsapp';
+  let notifSupported = typeof Notification !== 'undefined';
+  let alertReminderIds = {};
+
+  // ── Party popper sound ──
+  function playPartyPopper() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+      function pop(time, freq, dur) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const dist = ctx.createWaveShaper();
+
+        // Distortion curve for a "pop" texture
+        const curve = new Float32Array(256);
+        for (let i = 0; i < 256; i++) {
+          const x = (i * 2) / 256 - 1;
+          curve[i] = (Math.PI + 300) * x / (Math.PI + 300 * Math.abs(x));
+        }
+        dist.curve = curve;
+
+        osc.connect(dist);
+        dist.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + time);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.3, ctx.currentTime + time + dur);
+
+        gain.gain.setValueAtTime(0.6, ctx.currentTime + time);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + time + dur);
+
+        osc.start(ctx.currentTime + time);
+        osc.stop(ctx.currentTime + time + dur + 0.05);
+      }
+
+      function sparkle(time, freq) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + time);
+        osc.frequency.exponentialRampToValueAtTime(freq * 2.5, ctx.currentTime + time + 0.15);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime + time);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + time + 0.2);
+        osc.start(ctx.currentTime + time);
+        osc.stop(ctx.currentTime + time + 0.25);
+      }
+
+      // 🎉 Two pops + sparkle trail
+      pop(0.00, 180, 0.18);
+      pop(0.22, 220, 0.18);
+      sparkle(0.10, 800);
+      sparkle(0.18, 1000);
+      sparkle(0.26, 1200);
+      sparkle(0.34, 1500);
+      sparkle(0.42, 1100);
+      sparkle(0.50, 900);
+
+    } catch(e) {
+      console.log('Audio not available:', e);
+    }
+  }
+
+  // ── Toast ──
+  let toastTimer = null;
+  function showToast(msg, dur = 3000) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), dur);
+  }
+
+  // ── In-app alert banner ──
+  function showAlert(r) {
+    if (alertReminderIds[r.id]) return;
+    alertReminderIds[r.id] = true;
+
+    playPartyPopper();
+
+    document.getElementById('alertTitle').textContent = `🎉 Time to wish ${r.name}!`;
+    document.getElementById('alertSub').textContent =
+      `${r.occasion || 'Special occasion'} · ${r.platform === 'whatsapp' ? r.phone : '@' + r.ig}`;
+
+    const actions = document.getElementById('alertActions');
+    if (r.platform === 'whatsapp') {
+      actions.innerHTML = `
+        <button class="alert-btn alert-btn-send-wa" onclick="sendWhatsApp(${r.id}); dismissAlert()">📱 Open WhatsApp</button>
+        <button class="alert-btn alert-btn-dismiss" onclick="dismissAlert()">Later</button>`;
+    } else {
+      actions.innerHTML = `
+        <button class="alert-btn alert-btn-send-ig" onclick="sendInstagram(${r.id}); dismissAlert()">📸 Open Instagram</button>
+        <button class="alert-btn alert-btn-dismiss" onclick="dismissAlert()">Later</button>`;
+    }
+    document.getElementById('alertBanner').classList.add('show');
+  }
+
+  function dismissAlert() {
+    document.getElementById('alertBanner').classList.remove('show');
+  }
+
+  // ── Browser / SW notification ──
+  function scheduleViaSW(r) {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.ready.then(reg => {
+      const delay = new Date(r.time) - Date.now();
+      if (delay > 0) {
+        // Post to SW with the reminder data + delay
+        reg.active && reg.active.postMessage({
+          type: 'SCHEDULE',
+          reminder: r,
+          delay: delay
+        });
+      }
+    });
+  }
+
+  function scheduleLocalTimeout(r) {
+    const delay = new Date(r.time) - Date.now();
+    if (delay > 0 && delay < 2147483647) {
+      setTimeout(() => {
+        showAlert(r);
+        renderList();
+        // Also fire browser notification
+        if (notifSupported && Notification.permission === 'granted') {
+          try {
+            new Notification(`🎉 Time to wish ${r.name}!`, {
+              body: `${r.occasion || 'Special occasion'} — open Reminders to send`,
+              requireInteraction: true,
+              icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎉</text></svg>'
+            });
+          } catch(e) {}
+        }
+      }, delay);
+    }
+  }
+
+  function requestNotifPermission() {
+    if (!notifSupported) {
+      showToast('ℹ️ In-app alerts will still fire when the tab is open!', 4000);
+      document.getElementById('notifBar').style.display = 'none';
+      return;
+    }
+    Notification.requestPermission().then(perm => {
+      if (perm === 'granted') {
+        document.getElementById('notifBar').style.display = 'none';
+        reminders.forEach(r => { if (r.status !== 'sent') scheduleViaSW(r); });
+        showToast('🔔 Notifications enabled! You\'ll be alerted on time.');
+      } else if (perm === 'denied') {
+        showToast('🔕 Blocked — in-app alerts will still work when tab is open.', 5000);
+        document.getElementById('notifBar').style.display = 'none';
+      }
+    }).catch(() => {
+      showToast('ℹ️ In-app alerts will still work when the tab is open.', 4000);
+    });
+  }
+
+  // ── Default datetime ──
+  try {
+    const dt = new Date(Date.now() + 3600000);
+    dt.setSeconds(0,0);
+    document.getElementById('reminderTime').value = dt.toISOString().slice(0,16);
+  } catch(e) {}
+
+  function selectPlatform(p) {
+    selectedPlatform = p;
+    document.getElementById('btnWA').className = 'platform-btn' + (p==='whatsapp' ? ' active-wa' : '');
+    document.getElementById('btnIG').className  = 'platform-btn' + (p==='instagram' ? ' active-ig' : '');
+    document.getElementById('phoneField').className = 'field-group cond-field' + (p==='whatsapp' ? ' visible' : '');
+    document.getElementById('igField').className    = 'field-group cond-field' + (p==='instagram' ? ' visible' : '');
+  }
+
+  function updatePreview() {
+    const msg = document.getElementById('messageText').value.trim();
+    const preview = document.getElementById('msgPreview');
+    if (msg) {
+      preview.textContent = '"
