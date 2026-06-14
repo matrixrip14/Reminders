@@ -163,10 +163,17 @@ footer a{color:var(--rose);text-decoration:none;font-weight:500}
 </footer>
 
 <script>
-// Unregister any old service workers
+// Register Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(function(regs) {
-    regs.forEach(function(r) { r.unregister(); });
+  navigator.serviceWorker.register('sw.js')
+    .then(function(reg) { console.log('SW registered', reg.scope); })
+    .catch(function(e) { console.log('SW error', e); });
+
+  navigator.serviceWorker.addEventListener('message', function(e) {
+    if (e.data && e.data.type === 'DUE') {
+      var r = find(e.data.id);
+      if (r) showAlert(r);
+    }
   });
 }
 
@@ -257,6 +264,11 @@ function scheduleOne(r) {
   var delay = new Date(r.time) - Date.now();
   if (delay > 0 && delay < 2000000000) {
     setTimeout(function() { showAlert(r); renderList(); }, delay);
+  }
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.ready.then(function(reg) {
+      if (reg.active) reg.active.postMessage({ type: 'SCHEDULE', reminder: r, delay: delay });
+    }).catch(function() {});
   }
 }
 
@@ -397,4 +409,4 @@ function delReminder(id){reminders=reminders.filter(function(r){return r.id!==id
 function find(id){for(var i=0;i<reminders.length;i++){if(reminders[i].id===id)return reminders[i];}return null;}
 </script>
 </body>
-      </html>
+  </html>
