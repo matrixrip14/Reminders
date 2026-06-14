@@ -9,101 +9,72 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Reminders">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@400;500&display=swap');
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --ink: #1a1218; --paper: #faf7f4; --blush: #e8c4b8;
-    --rose: #c9735a; --muted: #8a7f7a; --card: #fff; --border: #e8e0dc;
-  }
-  body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(--ink); min-height: 100vh; display: flex; flex-direction: column; }
-
-  #toast {
-    position: fixed; bottom: 1.5rem; left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: #1a1218; color: #fff; padding: 0.7rem 1.4rem;
-    border-radius: 30px; font-size: 0.85rem; font-weight: 500;
-    z-index: 9999; transition: transform 0.3s, opacity 0.3s;
-    opacity: 0; max-width: 90vw; text-align: center; white-space: pre-line;
-  }
-  #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-
-  #alertBanner {
-    display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 10000;
-    background: linear-gradient(135deg, #c9735a, #e8845f); color: #fff;
-    padding: 1rem 1.5rem; box-shadow: 0 4px 24px rgba(201,115,90,0.4);
-  }
-  #alertBanner.show { display: block; }
-  .alert-inner { max-width: 720px; margin: 0 auto; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-  .alert-bell { font-size: 1.6rem; }
-  .alert-text { flex: 1; }
-  .alert-title { font-family: 'Fraunces', serif; font-size: 1.05rem; font-weight: 600; }
-  .alert-sub { font-size: 0.8rem; opacity: 0.88; margin-top: 0.1rem; }
-  .alert-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-  .alert-btn { padding: 0.42rem 0.9rem; border-radius: 8px; font-size: 0.78rem; font-weight: 500; cursor: pointer; border: none; font-family: 'DM Sans', sans-serif; }
-  .alert-btn-wa { background: #25D366; color: #fff; }
-  .alert-btn-ig { background: linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045); color: #fff; }
-  .alert-btn-dismiss { background: rgba(255,255,255,0.25); color: #fff; }
-
-  #notifBar { background: var(--blush); padding: 0.7rem 1.25rem; font-size: 0.82rem; color: #6b3a2a; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
-  #notifBar button { padding: 0.35rem 1rem; background: var(--rose); color: #fff; border: none; border-radius: 7px; font-size: 0.8rem; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; }
-
-  header { padding: 1.5rem 2rem 1rem; border-bottom: 1px solid var(--border); background: var(--card); }
-  .logo { font-family: 'Fraunces', serif; font-size: 1.75rem; font-weight: 600; letter-spacing: -0.02em; }
-  .logo span { color: var(--rose); font-style: italic; }
-  .tagline { font-size: 0.75rem; color: var(--muted); margin-top: 0.15rem; letter-spacing: 0.07em; text-transform: uppercase; }
-
-  .container { max-width: 720px; width: 100%; margin: 0 auto; padding: 1.75rem 1.5rem; flex: 1; }
-  .section-label { font-size: 0.68rem; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.85rem; }
-
-  .form-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 1.6rem; margin-bottom: 2rem; box-shadow: 0 2px 12px rgba(26,18,24,0.04); }
-  .form-title { font-family: 'Fraunces', serif; font-size: 1.25rem; font-weight: 300; margin-bottom: 1.4rem; }
-  .field-group { margin-bottom: 1.1rem; }
-  label { display: block; font-size: 0.75rem; font-weight: 500; color: var(--muted); margin-bottom: 0.35rem; letter-spacing: 0.04em; }
-  input, textarea, select { width: 100%; padding: 0.65rem 0.9rem; border: 1.5px solid var(--border); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem; color: var(--ink); background: var(--paper); outline: none; transition: border-color 0.2s; -webkit-appearance: none; }
-  input:focus, textarea:focus { border-color: var(--rose); background: #fff; }
-  textarea { resize: vertical; min-height: 85px; line-height: 1.5; }
-  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-  .platform-row { display: flex; gap: 0.6rem; }
-  .platform-btn { flex: 1; padding: 0.6rem 0.4rem; border: 1.5px solid var(--border); border-radius: 10px; background: var(--paper); cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.8rem; font-weight: 500; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.18s; }
-  .platform-btn.active-wa { border-color: #25D366; background: #f0fdf4; color: #16a34a; }
-  .platform-btn.active-ig { border-color: #c13584; background: #fdf2f8; color: #9d174d; }
-  .cond-field { display: none; }
-  .cond-field.visible { display: block; }
-  .btn-primary { width: 100%; padding: 0.85rem; background: var(--rose); color: #fff; border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 500; cursor: pointer; margin-top: 0.5rem; -webkit-appearance: none; }
-  .btn-primary:active { opacity: 0.85; }
-
-  .reminder-item { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.1rem; margin-bottom: 0.7rem; display: flex; align-items: center; gap: 0.9rem; position: relative; }
-  .reminder-icon { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; }
-  .icon-wa { background: #f0fdf4; }
-  .icon-ig { background: #fdf2f8; }
-  .reminder-info { flex: 1; min-width: 0; }
-  .reminder-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 0.98rem; }
-  .reminder-occasion { font-size: 0.75rem; color: var(--muted); margin-top: 0.1rem; }
-  .reminder-time { font-size: 0.75rem; font-weight: 500; color: var(--rose); margin-top: 0.15rem; }
-  .reminder-actions { display: flex; gap: 0.4rem; flex-direction: column; flex-shrink: 0; }
-  .btn-send { padding: 0.4rem 0.7rem; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.75rem; font-weight: 500; cursor: pointer; border: none; }
-  .btn-send-wa { background: #25D366; color: #fff; }
-  .btn-send-ig { background: linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045); color: #fff; }
-  .btn-delete { padding: 0.4rem 0.6rem; border-radius: 8px; background: #fef2f2; border: 1.5px solid #fca5a5; color: #dc2626; font-size: 0.75rem; cursor: pointer; font-family: 'DM Sans', sans-serif; }
-  .status-badge { display: inline-block; margin-top: 0.2rem; font-size: 0.62rem; padding: 0.1rem 0.4rem; border-radius: 20px; font-weight: 500; text-transform: uppercase; }
-  .badge-upcoming { background: #fef9c3; color: #854d0e; }
-  .badge-due { background: #fde8e4; color: #c9735a; }
-  .badge-sent { background: #dcfce7; color: #166534; }
-
-  .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--muted); }
-  .empty-icon { font-size: 2.75rem; margin-bottom: 0.6rem; }
-  .empty-state p { font-family: 'Fraunces', serif; font-style: italic; font-size: 1rem; }
-
-  .notice-bar { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 10px; padding: 0.7rem 1rem; font-size: 0.8rem; color: #92400e; margin-bottom: 1.4rem; line-height: 1.6; }
-  .notice-bar strong { display: block; margin-bottom: 0.2rem; }
-
-  .preview-box { background: var(--paper); border-radius: 8px; padding: 0.55rem 0.8rem; font-size: 0.8rem; color: var(--muted); margin-top: 0.4rem; font-style: italic; border-left: 3px solid var(--blush); display: none; }
-  .preview-box.visible { display: block; }
-
-  footer { text-align: center; padding: 1.25rem 1rem 1.5rem; font-size: 0.78rem; color: var(--muted); border-top: 1px solid var(--border); background: var(--card); }
-  footer a { color: var(--rose); text-decoration: none; font-weight: 500; }
-
-  @media (max-width: 480px) { .row { grid-template-columns: 1fr; } }
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;1,300&family=DM+Sans:wght@400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--ink:#1a1218;--paper:#faf7f4;--blush:#e8c4b8;--rose:#c9735a;--muted:#8a7f7a;--card:#fff;--border:#e8e0dc}
+body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;display:flex;flex-direction:column}
+#toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(80px);background:#1a1218;color:#fff;padding:.7rem 1.4rem;border-radius:30px;font-size:.85rem;font-weight:500;z-index:9999;transition:transform .3s,opacity .3s;opacity:0;max-width:90vw;text-align:center}
+#toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+#alertBanner{display:none;position:fixed;top:0;left:0;right:0;z-index:10000;background:linear-gradient(135deg,#c9735a,#e8845f);color:#fff;padding:1rem 1.5rem;box-shadow:0 4px 24px rgba(201,115,90,.4)}
+#alertBanner.show{display:block}
+.alert-inner{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:1rem;flex-wrap:wrap}
+.alert-bell{font-size:1.6rem}
+.alert-text{flex:1}
+.alert-title{font-family:'Fraunces',serif;font-size:1.05rem;font-weight:600}
+.alert-sub{font-size:.8rem;opacity:.88;margin-top:.1rem}
+.alert-actions{display:flex;gap:.5rem;flex-wrap:wrap}
+.alert-btn{padding:.42rem .9rem;border-radius:8px;font-size:.78rem;font-weight:500;cursor:pointer;border:none;font-family:'DM Sans',sans-serif}
+.alert-btn-wa{background:#25D366;color:#fff}
+.alert-btn-ig{background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);color:#fff}
+.alert-btn-dismiss{background:rgba(255,255,255,.25);color:#fff}
+#notifBar{background:var(--blush);padding:.7rem 1.25rem;font-size:.82rem;color:#6b3a2a;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+#notifBar button{padding:.35rem 1rem;background:var(--rose);color:#fff;border:none;border-radius:7px;font-size:.8rem;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif}
+header{padding:1.5rem 2rem 1rem;border-bottom:1px solid var(--border);background:var(--card)}
+.logo{font-family:'Fraunces',serif;font-size:1.75rem;font-weight:600;letter-spacing:-.02em}
+.logo span{color:var(--rose);font-style:italic}
+.tagline{font-size:.75rem;color:var(--muted);margin-top:.15rem;letter-spacing:.07em;text-transform:uppercase}
+.container{max-width:720px;width:100%;margin:0 auto;padding:1.75rem 1.5rem;flex:1}
+.section-label{font-size:.68rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.85rem}
+.form-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1.6rem;margin-bottom:2rem;box-shadow:0 2px 12px rgba(26,18,24,.04)}
+.form-title{font-family:'Fraunces',serif;font-size:1.25rem;font-weight:300;margin-bottom:1.4rem}
+.field-group{margin-bottom:1.1rem}
+label{display:block;font-size:.75rem;font-weight:500;color:var(--muted);margin-bottom:.35rem;letter-spacing:.04em}
+input,textarea{width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.9rem;color:var(--ink);background:var(--paper);outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+input:focus,textarea:focus{border-color:var(--rose);background:#fff}
+textarea{resize:vertical;min-height:85px;line-height:1.5}
+.platform-row{display:flex;gap:.6rem}
+.platform-btn{flex:1;padding:.6rem .4rem;border:1.5px solid var(--border);border-radius:10px;background:var(--paper);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.8rem;font-weight:500;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:.35rem;transition:all .18s;-webkit-appearance:none}
+.platform-btn.wa{border-color:#25D366;background:#f0fdf4;color:#16a34a}
+.platform-btn.ig{border-color:#c13584;background:#fdf2f8;color:#9d174d}
+.hide{display:none}
+.btn-primary{width:100%;padding:.85rem;background:var(--rose);color:#fff;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:1rem;font-weight:500;cursor:pointer;margin-top:.5rem;-webkit-appearance:none;appearance:none}
+.btn-primary:active{opacity:.85}
+.reminder-item{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1rem 1.1rem;margin-bottom:.7rem;display:flex;align-items:center;gap:.9rem;position:relative}
+.r-icon{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.25rem;flex-shrink:0}
+.r-icon.wa{background:#f0fdf4}
+.r-icon.ig{background:#fdf2f8}
+.r-info{flex:1;min-width:0}
+.r-name{font-family:'Fraunces',serif;font-weight:600;font-size:.98rem}
+.r-occ{font-size:.75rem;color:var(--muted);margin-top:.1rem}
+.r-time{font-size:.75rem;font-weight:500;color:var(--rose);margin-top:.15rem}
+.r-actions{display:flex;gap:.4rem;flex-direction:column;flex-shrink:0}
+.btn-wa{padding:.4rem .7rem;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:500;cursor:pointer;border:none;background:#25D366;color:#fff}
+.btn-ig{padding:.4rem .7rem;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.75rem;font-weight:500;cursor:pointer;border:none;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);color:#fff}
+.btn-del{padding:.4rem .6rem;border-radius:8px;background:#fef2f2;border:1.5px solid #fca5a5;color:#dc2626;font-size:.75rem;cursor:pointer;font-family:'DM Sans',sans-serif}
+.badge{display:inline-block;margin-top:.2rem;font-size:.62rem;padding:.1rem .4rem;border-radius:20px;font-weight:500;text-transform:uppercase}
+.b-up{background:#fef9c3;color:#854d0e}
+.b-due{background:#fde8e4;color:#c9735a}
+.b-sent{background:#dcfce7;color:#166534}
+.empty{text-align:center;padding:2.5rem 1rem;color:var(--muted)}
+.empty-i{font-size:2.75rem;margin-bottom:.6rem}
+.empty p{font-family:'Fraunces',serif;font-style:italic;font-size:1rem}
+.notice{background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;padding:.7rem 1rem;font-size:.8rem;color:#92400e;margin-bottom:1.4rem;line-height:1.6}
+.notice strong{display:block;margin-bottom:.2rem}
+.preview{background:var(--paper);border-radius:8px;padding:.55rem .8rem;font-size:.8rem;color:var(--muted);margin-top:.4rem;font-style:italic;border-left:3px solid var(--blush);display:none}
+.preview.show{display:block}
+footer{text-align:center;padding:1.25rem 1rem 1.5rem;font-size:.78rem;color:var(--muted);border-top:1px solid var(--border);background:var(--card)}
+footer a{color:var(--rose);text-decoration:none;font-weight:500}
+@media(max-width:480px){.r-actions{flex-direction:column}}
 </style>
 </head>
 <body>
@@ -112,10 +83,10 @@
   <div class="alert-inner">
     <div class="alert-bell">🔔</div>
     <div class="alert-text">
-      <div class="alert-title" id="alertTitle">Time to send your wish!</div>
-      <div class="alert-sub" id="alertSub"></div>
+      <div class="alert-title" id="aTitle">Time to send your wish!</div>
+      <div class="alert-sub" id="aSub"></div>
     </div>
-    <div class="alert-actions" id="alertActions"></div>
+    <div class="alert-actions" id="aActions"></div>
   </div>
 </div>
 
@@ -123,7 +94,7 @@
 
 <div id="notifBar">
   <span>🔔 Tap Enable to get notified at reminder time</span>
-  <button id="enableBtn" onclick="requestNotifPermission()">Enable</button>
+  <button onclick="enableNotif()">Enable</button>
 </div>
 
 <header>
@@ -132,10 +103,9 @@
 </header>
 
 <div class="container">
-  <div class="notice-bar">
+  <div class="notice">
     <strong>ℹ️ How this works</strong>
-    Set a date &amp; time → get a notification + party popper 🎉 →
-    tap to open WhatsApp or Instagram with your message ready.
+    Set a time → get a 🎉 notification → tap to open WhatsApp or Instagram with your message ready.
   </div>
 
   <div class="form-card">
@@ -143,303 +113,288 @@
 
     <div class="field-group">
       <label>Their name</label>
-      <input type="text" id="personName" placeholder="e.g. Uncle Ali" autocomplete="off" />
+      <input type="text" id="fName" placeholder="e.g. Uncle Ali" autocomplete="off">
     </div>
 
     <div class="field-group">
       <label>Occasion</label>
-      <input type="text" id="occasion" placeholder="e.g. Birthday, Anniversary, Eid…" autocomplete="off" />
+      <input type="text" id="fOcc" placeholder="e.g. Birthday, Anniversary, Eid…" autocomplete="off">
     </div>
 
     <div class="field-group">
       <label>Remind me at</label>
-      <input type="datetime-local" id="reminderTime" />
+      <input type="datetime-local" id="fTime">
     </div>
 
     <div class="field-group">
       <label>Platform</label>
       <div class="platform-row">
-        <button class="platform-btn active-wa" id="btnWA" onclick="selectPlatform('whatsapp')">📱 WhatsApp</button>
-        <button class="platform-btn" id="btnIG" onclick="selectPlatform('instagram')">📸 Instagram</button>
+        <button class="platform-btn wa" id="bWA" onclick="setPlatform('wa')">📱 WhatsApp</button>
+        <button class="platform-btn" id="bIG" onclick="setPlatform('ig')">📸 Instagram</button>
       </div>
     </div>
 
-    <div class="field-group cond-field visible" id="phoneField">
-      <label>Their WhatsApp number (with country code)</label>
-      <input type="tel" id="phoneNumber" placeholder="e.g. +248 2 123456" />
+    <div class="field-group" id="fPhoneWrap">
+      <label>WhatsApp number (with country code)</label>
+      <input type="tel" id="fPhone" placeholder="e.g. +248 2 123456">
     </div>
 
-    <div class="field-group cond-field" id="igField">
-      <label>Their Instagram username</label>
-      <input type="text" id="igUsername" placeholder="e.g. sarah.seychelles" autocomplete="off" />
+    <div class="field-group hide" id="fIgWrap">
+      <label>Instagram username</label>
+      <input type="text" id="fIg" placeholder="e.g. sarah.seychelles" autocomplete="off">
     </div>
 
     <div class="field-group">
       <label>Your message</label>
-      <textarea id="messageText" placeholder="Happy Birthday! Wishing you all the joy today and always. 🎉" oninput="updatePreview()"></textarea>
-      <div class="preview-box" id="msgPreview"></div>
+      <textarea id="fMsg" placeholder="Happy Birthday! Wishing you all the joy today 🎉" oninput="previewMsg()"></textarea>
+      <div class="preview" id="msgPreview"></div>
     </div>
 
-    <button class="btn-primary" id="addBtn" onclick="addReminder()">＋ Add Reminder</button>
+    <button class="btn-primary" onclick="addReminder()">＋ Add Reminder</button>
   </div>
 
   <div class="section-label">Your reminders</div>
-  <div id="remindersList">
-    <div class="empty-state">
-      <div class="empty-icon">💌</div>
-      <p>No reminders yet — add one above</p>
-    </div>
-  </div>
+  <div id="list"></div>
 </div>
 
 <footer>
-  Built by 📸 <a href="https://www.instagram.com/matrix_rip14" target="_blank" rel="noopener">@matrix_rip14</a>
-  &nbsp;·&nbsp; Reminders &copy; 2026
+  Built by 📸 <a href="https://www.instagram.com/matrix_rip14" target="_blank">@matrix_rip14</a>
+  &nbsp;·&nbsp; Reminders © 2026
 </footer>
 
 <script>
-// ── Service Worker ──
+// Unregister any old service workers
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js')
-      .then(function(reg) { console.log('SW ok', reg.scope); })
-      .catch(function(err) { console.log('SW fail', err); });
-
-    navigator.serviceWorker.addEventListener('message', function(e) {
-      if (e.data && e.data.type === 'REMINDER_DUE') {
-        var r = getReminderById(e.data.id);
-        if (r) showAlert(r);
-      }
-    });
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(r) { r.unregister(); });
   });
 }
 
-// ── Storage ──
-function saveReminders() {
-  try { localStorage.setItem('reminders_v2', JSON.stringify(reminders)); } catch(e) {}
-}
-function loadReminders() {
-  try { return JSON.parse(localStorage.getItem('reminders_v2') || '[]'); } catch(e) { return []; }
+var platform = 'wa';
+var reminders = [];
+var alerted = {};
+var toastT;
+
+// Load saved reminders
+try { reminders = JSON.parse(localStorage.getItem('rm_v3') || '[]'); } catch(e) { reminders = []; }
+
+function save() {
+  try { localStorage.setItem('rm_v3', JSON.stringify(reminders)); } catch(e) {}
 }
 
-var reminders = loadReminders();
-var selectedPlatform = 'whatsapp';
-var alertedIds = {};
-
-// ── Set default time (now + 1 hour) ──
-window.addEventListener('load', function() {
+// Set default time = now + 1 hour
+(function() {
   try {
     var d = new Date(Date.now() + 3600000);
-    d.setSeconds(0, 0);
-    var iso = d.getFullYear() + '-' +
-      String(d.getMonth()+1).padStart(2,'0') + '-' +
-      String(d.getDate()).padStart(2,'0') + 'T' +
-      String(d.getHours()).padStart(2,'0') + ':' +
-      String(d.getMinutes()).padStart(2,'0');
-    document.getElementById('reminderTime').value = iso;
+    d.setSeconds(0,0);
+    var s = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+    document.getElementById('fTime').value = s;
   } catch(e) {}
-
-  // Hide notif bar if already granted
+  renderList();
+  scheduleAll();
+  setInterval(checkDue, 30000);
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     document.getElementById('notifBar').style.display = 'none';
   }
+})();
 
-  renderList();
-  scheduleAllPending();
+function pad(n) { return n < 10 ? '0'+n : ''+n; }
 
-  // Poll every 30s
-  setInterval(checkDue, 30000);
-});
-
-// ── Toast ──
-var toastTimer;
-function showToast(msg, dur) {
-  dur = dur || 3000;
+function toast(msg, d) {
   var t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'show';
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(function() { t.className = ''; }, dur);
+  clearTimeout(toastT);
+  toastT = setTimeout(function() { t.className = ''; }, d||3000);
 }
 
-// ── Party Popper Sound ──
-function playPartyPopper() {
-  try {
-    var AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    var ctx = new AudioCtx();
-
-    function pop(time, freq, dur) {
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(freq, ctx.currentTime + time);
-      osc.frequency.exponentialRampToValueAtTime(freq * 0.2, ctx.currentTime + time + dur);
-      gain.gain.setValueAtTime(0.5, ctx.currentTime + time);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + time + dur);
-      osc.start(ctx.currentTime + time);
-      osc.stop(ctx.currentTime + time + dur + 0.05);
-    }
-
-    function sparkle(time, freq) {
-      var osc = ctx.createOscillator();
-      var gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, ctx.currentTime + time);
-      osc.frequency.exponentialRampToValueAtTime(freq * 2.5, ctx.currentTime + time + 0.15);
-      gain.gain.setValueAtTime(0.25, ctx.currentTime + time);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + time + 0.2);
-      osc.start(ctx.currentTime + time);
-      osc.stop(ctx.currentTime + time + 0.25);
-    }
-
-    pop(0.00, 180, 0.18);
-    pop(0.25, 220, 0.18);
-    sparkle(0.10, 800);
-    sparkle(0.20, 1000);
-    sparkle(0.30, 1200);
-    sparkle(0.40, 1500);
-    sparkle(0.50, 900);
-  } catch(e) { console.log('Audio error', e); }
+function setPlatform(p) {
+  platform = p;
+  document.getElementById('bWA').className = 'platform-btn' + (p==='wa' ? ' wa' : '');
+  document.getElementById('bIG').className = 'platform-btn' + (p==='ig' ? ' ig' : '');
+  document.getElementById('fPhoneWrap').className = 'field-group' + (p==='wa' ? '' : ' hide');
+  document.getElementById('fIgWrap').className = 'field-group' + (p==='ig' ? '' : ' hide');
 }
 
-// ── Alert Banner ──
-function showAlert(r) {
-  if (alertedIds[r.id]) return;
-  alertedIds[r.id] = true;
-  playPartyPopper();
-  document.getElementById('alertTitle').textContent = '🎉 Time to wish ' + r.name + '!';
-  document.getElementById('alertSub').textContent =
-    (r.occasion || 'Special occasion') + ' · ' + (r.platform === 'whatsapp' ? r.phone : '@' + r.ig);
-  var html = '';
-  if (r.platform === 'whatsapp') {
-    html += '<button class="alert-btn alert-btn-wa" onclick="sendWhatsApp(' + r.id + '); dismissAlert()">📱 Open WhatsApp</button>';
-  } else {
-    html += '<button class="alert-btn alert-btn-ig" onclick="sendInstagram(' + r.id + '); dismissAlert()">📸 Open Instagram</button>';
-  }
-  html += '<button class="alert-btn alert-btn-dismiss" onclick="dismissAlert()">Later</button>';
-  document.getElementById('alertActions').innerHTML = html;
-  document.getElementById('alertBanner').className = 'show';
+function previewMsg() {
+  var m = document.getElementById('fMsg').value.trim();
+  var b = document.getElementById('msgPreview');
+  if (m) { b.textContent = '"' + m.slice(0,120) + (m.length>120?'…':'') + '"'; b.className='preview show'; }
+  else { b.className='preview'; }
+}
 
-  // Browser notification
-  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-    try {
-      new Notification('🎉 Time to wish ' + r.name + '!', {
-        body: (r.occasion || 'Special occasion') + ' — open Reminders to send your message',
-        requireInteraction: true
-      });
-    } catch(e) {}
+function addReminder() {
+  var name = document.getElementById('fName').value.trim();
+  var occ  = document.getElementById('fOcc').value.trim();
+  var time = document.getElementById('fTime').value;
+  var msg  = document.getElementById('fMsg').value.trim();
+  var ph   = document.getElementById('fPhone').value.trim();
+  var ig   = document.getElementById('fIg').value.trim().replace('@','');
+
+  if (!name) { toast('⚠️ Enter their name'); return; }
+  if (!time) { toast('⚠️ Set a date and time'); return; }
+  if (!msg)  { toast('⚠️ Write a message'); return; }
+  if (platform==='wa' && !ph) { toast('⚠️ Enter WhatsApp number'); return; }
+  if (platform==='ig' && !ig) { toast('⚠️ Enter Instagram username'); return; }
+  if (new Date(time) <= new Date()) { toast('⚠️ Choose a future time'); return; }
+
+  var r = { id: Date.now(), name:name, occ:occ, time:time, msg:msg, platform:platform, ph:ph, ig:ig, status:'upcoming' };
+  reminders.push(r);
+  save();
+  renderList();
+  scheduleOne(r);
+  toast('✅ Reminder set for '+name+'! 🎉');
+
+  document.getElementById('fName').value='';
+  document.getElementById('fOcc').value='';
+  document.getElementById('fMsg').value='';
+  document.getElementById('fPhone').value='';
+  document.getElementById('fIg').value='';
+  document.getElementById('msgPreview').className='preview';
+}
+
+function scheduleOne(r) {
+  var delay = new Date(r.time) - Date.now();
+  if (delay > 0 && delay < 2000000000) {
+    setTimeout(function() { showAlert(r); renderList(); }, delay);
   }
 }
 
-function dismissAlert() {
-  document.getElementById('alertBanner').className = '';
+function scheduleAll() {
+  reminders.forEach(function(r) { if (r.status !== 'sent') scheduleOne(r); });
 }
 
-// ── Notifications ──
-function requestNotifPermission() {
-  if (typeof Notification === 'undefined') {
-    showToast('ℹ️ Notifications not supported on this browser. In-app alerts still work!', 5000);
-    document.getElementById('notifBar').style.display = 'none';
-    return;
-  }
-  if (Notification.permission === 'granted') {
-    document.getElementById('notifBar').style.display = 'none';
-    showToast('🔔 Notifications already enabled!');
-    return;
-  }
-  Notification.requestPermission().then(function(perm) {
-    document.getElementById('notifBar').style.display = 'none';
-    if (perm === 'granted') {
-      showToast('🔔 Notifications enabled! You will be alerted on time. 🎉');
-      scheduleAllPending();
-    } else {
-      showToast('🔕 Notifications blocked. In-app alerts will still fire when tab is open.', 5000);
-    }
-  }).catch(function() {
-    document.getElementById('notifBar').style.display = 'none';
-    showToast('ℹ️ In-app alerts will fire when the tab is open.', 4000);
+function checkDue() {
+  reminders.forEach(function(r) {
+    if (r.status !== 'sent' && new Date(r.time) <= new Date()) { showAlert(r); renderList(); }
   });
 }
 
-// ── Platform toggle ──
-function selectPlatform(p) {
-  selectedPlatform = p;
-  document.getElementById('btnWA').className = 'platform-btn' + (p === 'whatsapp' ? ' active-wa' : '');
-  document.getElementById('btnIG').className  = 'platform-btn' + (p === 'instagram' ? ' active-ig' : '');
-  document.getElementById('phoneField').className = 'field-group cond-field' + (p === 'whatsapp' ? ' visible' : '');
-  document.getElementById('igField').className    = 'field-group cond-field' + (p === 'instagram' ? ' visible' : '');
+function playPop() {
+  try {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    var c = new AC();
+    function pop(t,f,d) {
+      var o=c.createOscillator(), g=c.createGain();
+      o.connect(g); g.connect(c.destination);
+      o.type='sawtooth';
+      o.frequency.setValueAtTime(f, c.currentTime+t);
+      o.frequency.exponentialRampToValueAtTime(f*.2, c.currentTime+t+d);
+      g.gain.setValueAtTime(.5, c.currentTime+t);
+      g.gain.exponentialRampToValueAtTime(.001, c.currentTime+t+d);
+      o.start(c.currentTime+t); o.stop(c.currentTime+t+d+.05);
+    }
+    function sp(t,f) {
+      var o=c.createOscillator(), g=c.createGain();
+      o.connect(g); g.connect(c.destination);
+      o.type='sine';
+      o.frequency.setValueAtTime(f, c.currentTime+t);
+      o.frequency.exponentialRampToValueAtTime(f*2.5, c.currentTime+t+.15);
+      g.gain.setValueAtTime(.25, c.currentTime+t);
+      g.gain.exponentialRampToValueAtTime(.001, c.currentTime+t+.2);
+      o.start(c.currentTime+t); o.stop(c.currentTime+t+.25);
+    }
+    pop(.00,180,.18); pop(.25,220,.18);
+    sp(.10,800); sp(.20,1000); sp(.30,1200); sp(.40,1500); sp(.50,900);
+  } catch(e) {}
 }
 
-// ── Preview ──
-function updatePreview() {
-  var msg = document.getElementById('messageText').value.trim();
-  var box = document.getElementById('msgPreview');
-  if (msg) {
-    box.textContent = '"' + msg.slice(0, 120) + (msg.length > 120 ? '…' : '') + '"';
-    box.className = 'preview-box visible';
-  } else {
-    box.className = 'preview-box';
+function showAlert(r) {
+  if (alerted[r.id]) return;
+  alerted[r.id] = true;
+  playPop();
+  document.getElementById('aTitle').textContent = '🎉 Time to wish '+r.name+'!';
+  document.getElementById('aSub').textContent = (r.occ||'Special occasion')+' · '+(r.platform==='wa'?r.ph:'@'+r.ig);
+  var a = r.platform==='wa'
+    ? '<button class="alert-btn alert-btn-wa" onclick="doSendWA('+r.id+');closeAlert()">📱 Open WhatsApp</button>'
+    : '<button class="alert-btn alert-btn-ig" onclick="doSendIG('+r.id+');closeAlert()">📸 Open Instagram</button>';
+  a += '<button class="alert-btn alert-btn-dismiss" onclick="closeAlert()">Later</button>';
+  document.getElementById('aActions').innerHTML = a;
+  document.getElementById('alertBanner').className = 'show';
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    try { new Notification('🎉 Time to wish '+r.name+'!', { body: (r.occ||'Special occasion')+' — open Reminders', requireInteraction:true }); } catch(e) {}
   }
 }
 
-// ── Add Reminder ──
-function addReminder() {
-  var name     = document.getElementById('personName').value.trim();
-  var occasion = document.getElementById('occasion').value.trim();
-  var time     = document.getElementById('reminderTime').value;
-  var message  = document.getElementById('messageText').value.trim();
-  var phone    = document.getElementById('phoneNumber').value.trim();
-  var ig       = document.getElementById('igUsername').value.trim().replace('@', '');
+function closeAlert() { document.getElementById('alertBanner').className=''; }
 
-  if (!name)    { showToast('⚠️ Please enter their name.'); return; }
-  if (!time)    { showToast('⚠️ Please set a date and time.'); return; }
-  if (!message) { showToast('⚠️ Please write a message.'); return; }
-  if (selectedPlatform === 'whatsapp' && !phone) { showToast('⚠️ Please enter a WhatsApp number.'); return; }
-  if (selectedPlatform === 'instagram' && !ig)   { showToast('⚠️ Please enter an Instagram username.'); return; }
-  if (new Date(time) <= new Date()) { showToast('⚠️ Please choose a future date and time.'); return; }
-
-  var r = {
-    id: Date.now(),
-    name: name,
-    occasion: occasion,
-    time: time,
-    message: message,
-    platform: selectedPlatform,
-    phone: phone,
-    ig: ig,
-    status: 'upcoming'
-  };
-
-  reminders.push(r);
-  saveReminders();
-  renderList();
-  scheduleReminder(r);
-  showToast('✅ Reminder saved for ' + name + '! 🎉');
-
-  document.getElementById('personName').value  = '';
-  document.getElementById('occasion').value    = '';
-  document.getElementById('messageText').value = '';
-  document.getElementById('phoneNumber').value = '';
-  document.getElementById('igUsername').value  = '';
-  document.getElementById('msgPreview').className = 'preview-box';
+function enableNotif() {
+  if (typeof Notification === 'undefined') {
+    toast('Notifications not supported here. In-app alerts still work!', 5000);
+    document.getElementById('notifBar').style.display='none';
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    document.getElementById('notifBar').style.display='none';
+    toast('🔔 Notifications already enabled!');
+    return;
+  }
+  Notification.requestPermission().then(function(p) {
+    document.getElementById('notifBar').style.display='none';
+    if (p==='granted') toast('🔔 Notifications enabled! You will be alerted on time 🎉');
+    else toast('Blocked — in-app alerts will still fire when tab is open.', 5000);
+  }).catch(function() {
+    document.getElementById('notifBar').style.display='none';
+    toast('In-app alerts will fire when the tab is open.', 4000);
+  });
 }
 
-// ── Schedule ──
-function scheduleReminder(r) {
-  var delay = new Date(r.time) - Date.now();
-  if (delay > 0 && delay < 2000000000) {
-    setTimeout(function() {
-      showAlert(r);
-      renderList();
-    }, delay);
+function renderList() {
+  var el = document.getElementById('list');
+  if (!reminders.length) {
+    el.innerHTML='<div class="empty"><div class="empty-i">💌</div><p>No reminders yet — add one above</p></div>';
+    return;
   }
-  // Tell SW too
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then(function(reg) {
-      if (reg.active) {
-        reg.active.postMessage({ type: 'SCHEDUL
+  var s = reminders.slice().sort(function(a,b){return new Date(a.time)-new Date(b.time);});
+  var h='';
+  s.forEach(function(r) {
+    var dt=new Date(r.time), now=new Date();
+    var due=dt<=now && r.status!=='sent';
+    var bc=r.status==='sent'?'b-sent':(due?'b-due':'b-up');
+    var bt=r.status==='sent'?'Sent ✓':(due?'Send now!':'Upcoming');
+    var ic=r.platform==='wa'?'📱':'📸';
+    var icC=r.platform==='wa'?'wa':'ig';
+    var ct=r.platform==='wa'?r.ph:'@'+r.ig;
+    var mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var ts=mn[dt.getMonth()]+' '+dt.getDate()+', '+pad(dt.getHours())+':'+pad(dt.getMinutes());
+    var sb=r.platform==='wa'
+      ?'<button class="btn-wa" onclick="doSendWA('+r.id+')">Open WhatsApp</button>'
+      :'<button class="btn-ig" onclick="doSendIG('+r.id+')">Open Instagram</button>';
+    h+='<div class="reminder-item">'+
+      '<div class="r-icon '+icC+'">'+ic+'</div>'+
+      '<div class="r-info">'+
+        '<div class="r-name">'+esc(r.name)+'</div>'+
+        '<div class="r-occ">'+esc(r.occ||'Special occasion')+' · '+esc(ct)+'</div>'+
+        '<div class="r-time">⏰ '+ts+'</div>'+
+        '<span class="badge '+bc+'">'+bt+'</span>'+
+      '</div>'+
+      '<div class="r-actions">'+sb+'<button class="btn-del" onclick="delReminder('+r.id+')">✕ Delete</button></div>'+
+    '</div>';
+  });
+  el.innerHTML=h;
+}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function doSendWA(id) {
+  var r=find(id); if(!r) return;
+  window.open('https://wa.me/'+r.ph.replace(/[\s\-\+\(\)]/g,'')+'?text='+encodeURIComponent(r.msg),'_blank');
+  markSent(id); toast('📱 WhatsApp opened — tap Send!');
+}
+
+function doSendIG(id) {
+  var r=find(id); if(!r) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(r.msg).then(function(){toast('📋 Message copied! Paste in DM.');}).catch(function(){toast('📸 Opening Instagram!');});
+  } else { toast('📸 Opening Instagram — copy your message manually.'); }
+  window.open('https://www.instagram.com/'+r.ig+'/','_blank');
+  markSent(id);
+}
+
+function markSent(id){var r=find(id);if(r){r.status='sent';save();renderList();}}
+function delReminder(id){reminders=reminders.filter(function(r){return r.id!==id;});save();renderList();toast('🗑️ Deleted.');}
+function find(id){for(var i=0;i<reminders.length;i++){if(reminders[i].id===id)return reminders[i];}return null;}
+</script>
+</body>
+      </html>
