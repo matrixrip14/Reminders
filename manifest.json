@@ -1,106 +1,26 @@
-// ── Reminders Service Worker ──
-// Handles background notifications even when the browser is closed
-
-const CACHE_NAME = 'reminders-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
-
-// Install & cache app shell
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
-  );
-  self.skipWaiting();
-});
-
-// Activate & clean old caches
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
-});
-
-// Serve from cache, fallback to network
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request))
-  );
-});
-
-// ── Scheduled reminders storage ──
-const scheduledTimers = {};
-
-// Receive schedule messages from the main page
-self.addEventListener('message', e => {
-  if (e.data && e.data.type === 'SCHEDULE') {
-    const { reminder, delay } = e.data;
-    const id = reminder.id;
-
-    // Clear any existing timer for this reminder
-    if (scheduledTimers[id]) clearTimeout(scheduledTimers[id]);
-
-    if (delay > 0 && delay < 2147483647) {
-      scheduledTimers[id] = setTimeout(() => {
-        fireNotification(reminder);
-      }, delay);
+{
+  "name": "Reminders",
+  "short_name": "Reminders",
+  "description": "Never miss a birthday or anniversary. Schedule wishes for WhatsApp and Instagram.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf7f4",
+  "theme_color": "#c9735a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%23c9735a'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='300'>🎉</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%23c9735a'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-size='300'>🎉</text></svg>",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
     }
-  }
-});
-
-// Fire a push notification
-function fireNotification(r) {
-  const platform = r.platform === 'whatsapp' ? 'WhatsApp' : 'Instagram';
-  const contact  = r.platform === 'whatsapp' ? r.phone : '@' + r.ig;
-
-  self.registration.showNotification(`🎉 Time to wish ${r.name}!`, {
-    body: `${r.occasion || 'Special occasion'} · Send via ${platform} to ${contact}`,
-    icon: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎉</text></svg>',
-    badge: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔔</text></svg>',
-    tag: 'reminder-' + r.id,
-    requireInteraction: true,
-    vibrate: [200, 100, 200, 100, 400],
-    actions: [
-      { action: 'open', title: `Open ${platform}` },
-      { action: 'dismiss', title: 'Later' }
-    ],
-    data: { reminder: r }
-  });
-
-  // Also notify open tabs
-  self.clients.matchAll({ type: 'window' }).then(clients => {
-    clients.forEach(client => {
-      client.postMessage({ type: 'REMINDER_DUE', id: r.id });
-    });
-  });
+  ],
+  "categories": ["utilities", "productivity"],
+  "lang": "en"
 }
-
-// Handle notification click
-self.addEventListener('notificationclick', e => {
-  e.notification.close();
-  const r = e.notification.data && e.notification.data.reminder;
-  if (!r) return;
-
-  if (e.action === 'open' || !e.action) {
-    let url;
-    if (r.platform === 'whatsapp') {
-      const phone = r.phone.replace(/[\s\-\+\(\)]/g, '');
-      url = `https://wa.me/${phone}?text=${encodeURIComponent(r.message)}`;
-    } else {
-      url = `https://www.instagram.com/${r.ig}/`;
-    }
-    e.waitUntil(
-      self.clients.matchAll({ type: 'window' }).then(clients => {
-        // Focus existing tab if open
-        for (const client of clients) {
-          if (client.url.includes(self.location.origin) && 'focus' in client) {
-            return client.focus().then(() => client.navigate(url));
-          }
-        }
-        // Otherwise open new tab
-        return self.clients.openWindow(url);
-      })
-    );
-  }
-});
